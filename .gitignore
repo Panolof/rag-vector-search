@@ -19,3 +19,6 @@ build/
 
 # Ignore system files
 .DS_Store
+
+# .gitignore
+.env

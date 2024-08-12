@@ -50,6 +50,38 @@ source venv/bin/activate  # On macOS/Linux
 ```bash
 pip install -r requirements.txt
 ```
+
+### Setting Up Environment Variables
+To securely manage API keys and database connections, this project uses a .env file to store environment variables. Follow the steps below to set it up:
+
+1. Create a .env File
+* In the root directory of your project, create a new file named .env.
+* You can use the .env.example file as a reference. Run the following command to copy it:
+```bash
+cp .env.example .env
+```
+
+2. Fill in the .env File
+Open the newly created .env file and replace the placeholder values with your actual credentials:
+* OPENAI_API_KEY: This is your OpenAI API key. You can obtain it from [OpenAI's API](https://beta.openai.com/signup/).
+```plaintext
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+* MILVUS_HOST: This is the host address for your Milvus vector database. If you are running Milvus locally, this will likely be 127.0.0.1.
+```plaintext
+MILVUS_HOST=127.0.0.1
+```
+* MILVUS_PORT: This is the port number for your Milvus vector database. The default port is 19530.
+```plaintext
+MILVUS_PORT=19530
+```
+3. Save the .env File
+After filling in the values, save the .env file. This file will now be used to configure the API key and database connections throughout the project.
+Note: Never commit your .env file to version control. It contains sensitive information that should remain private. This should be documented in the [.gitignore](.gitignore)
+
+
+
+
 ## Step-by-Step Workflow
 1. Preprocessing the Dataset:
 The src/preprocess.py script loads the "News Category Dataset", preprocesses the text data, and generates embeddings using a pre-trained language model. These embeddings are saved as a NumPy array for later use.
