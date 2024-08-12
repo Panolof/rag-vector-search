@@ -51,6 +51,70 @@ source venv/bin/activate  # On macOS/Linux
 pip install -r requirements.txt
 ```
 
+## Setting Up Milvus
+
+To use this project, you need to have Milvus installed and running. The easiest way to set up Milvus is by using Docker. Follow these steps:
+
+### Prerequisites
+
+- **Docker**: Ensure you have Docker installed on your system. You can download and install Docker from [here](https://www.docker.com/products/docker-desktop).
+
+### Steps to Set Up Milvus
+
+1. **Download the Official Milvus Docker Compose File**:
+   In your terminal, run the following command to download the Milvus standalone Docker Compose file:
+
+   ```bash
+   wget https://github.com/milvus-io/milvus/releases/download/v2.0.2/milvus-standalone-docker-compose.yml -O docker-compose.yml
+   ```
+
+   This command will download the `docker-compose.yml` file directly from the Milvus GitHub repository for version 2.0.2.
+
+2. **Start Milvus**:
+   In the terminal, navigate to the directory where you downloaded the `docker-compose.yml` file and run:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+   This command will start the Milvus service in detached mode.
+
+3. **Verify Milvus is Running**:
+   You can check if Milvus is running with:
+
+   ```bash
+   docker-compose ps
+   ```
+    After Milvus standalone starts, there will be three Docker containers running, including the Milvus standalone service and its two dependencies.
+
+4. **Stopping Milvus**:
+   When you are done, you can stop the Milvus service with:
+
+   ```bash
+   docker-compose down
+   ```
+   If you want to delete the data after stopping Milvus, run:
+   ```bash
+   sudo rm -rf volumes
+   ```
+For more detailed instructions, refer to the official Milvus documentation: [Milvus Standalone Installation](https://milvus.io/docs/v2.0.x/install_standalone-docker.md).
+
+
+### Connecting to Milvus
+
+The application will automatically connect to Milvus using the environment variables specified in your `.env` file. Ensure you have the correct values set for `MILVUS_HOST` and `MILVUS_PORT`.
+
+Example `.env` configuration:
+
+```env
+MILVUS_HOST=127.0.0.1
+MILVUS_PORT=19530
+OPENAI_API_KEY=your_openai_api_key
+```
+
+By following these steps, you will have a fully operational Milvus instance running in Docker, ready to be used with this project.
+
+
 ### Setting Up Environment Variables
 To securely manage API keys and database connections, this project uses a .env file to store environment variables. Follow the steps below to set it up:
 
