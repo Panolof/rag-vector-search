@@ -1,0 +1,21 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Vector Search</title>
+</head>
+<body>
+    <h1>RAG Vector Search</h1>
+    <form method="post">
+        <label for="query">Enter your query:</label><br>
+        <input type="text" id="query" name="query" required><br><br>
+        <input type="submit" value="Search">
+    </form>
+    {% if response %}
+        <h2>Response:</h2>
+        <p>{{ response }}</p>
+    {% endif %}
+</body>
+</html>
