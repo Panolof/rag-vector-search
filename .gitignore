@@ -22,3 +22,7 @@ build/
 
 # .gitignore
 .env
+
+# Docker volumes directory
+volumes/
+
