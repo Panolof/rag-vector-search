@@ -1,2 +1,21 @@
+# Ignore virtual environment directories
+venv/
+env/
 __pycache__/
-__pycache__/
+*.pyc
+*.pyo
+
+# Ignore data directories (if you don't want to track data files)
+data/
+
+# Ignore any logs
+*.log
+
+# Ignore Python package distributions
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Ignore system files
+.DS_Store
