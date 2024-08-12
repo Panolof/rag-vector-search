@@ -1,8 +1,9 @@
 # src/milvus_setup.py
 from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection
 
-# Connect to Milvus
-connections.connect("default", host="127.0.0.1", port="19530")
+# Connect to Milvus using URI
+uri = "http://127.0.0.1:19530"
+connections.connect(uri=uri)
 
 # Define the schema
 fields = [
