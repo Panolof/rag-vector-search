@@ -65,7 +65,7 @@ To use this project, you need to have Milvus installed and running. The easiest 
    In your terminal, run the following command to download the Milvus standalone Docker Compose file:
 
    ```bash
-   wget https://github.com/milvus-io/milvus/releases/download/v2.4.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
+   wget https://github.com/milvus-io/milvus/releases/download/v2.4.6/milvus-standalone-docker-compose.yml -O docker-compose.yml
    ```
 
    This command will download the `docker-compose.yml` file directly from the Milvus GitHub repository for version 2.0.2.

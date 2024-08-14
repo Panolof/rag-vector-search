@@ -24,6 +24,8 @@ services:
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin      
     ports:
       - "9001:9001"
       - "9000:9000"
@@ -38,7 +40,7 @@ services:
 
   standalone:
     container_name: milvus-standalone
-    image: milvusdb/milvus:v2.4.0
+    image: milvusdb/milvus:v2.4.6
     command: ["milvus", "run", "standalone"]
     security_opt:
     - seccomp:unconfined
