@@ -1,21 +1,106 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Vector Search</title>
+    <meta name="description" content="Inspect a local-first RAG retrieval path backed by Milvus Lite.">
+    <title>RAG Vector Search | Local evidence first</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body>
-    <h1>RAG Vector Search</h1>
-    <form method="post">
-        <label for="query">Enter your query:</label><br>
-        <input type="text" id="query" name="query" required><br><br>
-        <input type="submit" value="Search">
-    </form>
-    {% if response %}
-        <h2>Response:</h2>
-        <p>{{ response }}</p>
-    {% endif %}
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="RAG Vector Search home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>RAG / VECTOR SEARCH</span>
+        </a>
+        <div class="status"><span aria-hidden="true"></span> local-first demo</div>
+    </header>
+
+    <main>
+        <section class="hero" aria-labelledby="page-title">
+            <p class="eyebrow">Milvus Lite · deterministic embeddings · visible evidence</p>
+            <h1 id="page-title">Ask the corpus.<br><span>Inspect the evidence.</span></h1>
+            <p class="lede">A small retrieval-augmented generation system with an offline default. Every answer keeps its nearest records in view.</p>
+
+            <form class="search-form" method="post">
+                <label for="query">What do you want to find?</label>
+                <div class="search-row">
+                    <input
+                        id="query"
+                        name="query"
+                        type="search"
+                        value="{{ query|default('') }}"
+                        maxlength="{{ max_query_chars }}"
+                        placeholder="How are teams checking AI-assisted work?"
+                        autocomplete="off"
+                        required
+                    >
+                    <button type="submit">Search <span aria-hidden="true">↗</span></button>
+                </div>
+                <div class="examples" aria-label="Example questions">
+                    <span>Try</span>
+                    <button type="submit" name="query" value="How are teams checking AI-assisted work?" formnovalidate>AI evaluation</button>
+                    <button type="submit" name="query" value="How are batteries helping the electricity grid?" formnovalidate>Grid batteries</button>
+                    <button type="submit" name="query" value="What is changing in software dependency security?" formnovalidate>Package security</button>
+                </div>
+            </form>
+
+            {% if error %}
+            <div class="notice error" role="alert">{{ error }}</div>
+            {% endif %}
+        </section>
+
+        <aside class="flow-card" aria-label="System flow">
+            <p class="card-label">REQUEST PATH</p>
+            <ol>
+                <li><span>01</span><div><strong>Embed</strong><small>Local feature hashing</small></div></li>
+                <li><span>02</span><div><strong>Retrieve</strong><small>Milvus cosine search</small></div></li>
+                <li><span>03</span><div><strong>Answer</strong><small>Evidence-bound synthesis</small></div></li>
+            </ol>
+            <div class="flow-note">No API key or model download in the default path.</div>
+        </aside>
+
+        {% if result %}
+        <section class="results" aria-labelledby="answer-heading" aria-live="polite">
+            <div class="answer-card">
+                <div class="answer-meta">
+                    <p id="answer-heading">GROUNDED ANSWER</p>
+                    <span>top-match extraction</span>
+                </div>
+                <h2>{{ result.answer }}</h2>
+            </div>
+
+            <div class="evidence-header">
+                <div>
+                    <p class="card-label">RETRIEVED EVIDENCE</p>
+                    <h2>{{ result.hits|length }} nearest records</h2>
+                </div>
+                <p>Cosine similarity · higher is closer</p>
+            </div>
+
+            <div class="evidence-grid">
+                {% for hit in result.hits %}
+                <article class="evidence-card">
+                    <div class="evidence-topline">
+                        <span class="rank">0{{ loop.index }}</span>
+                        <span class="score">{{ "%.3f"|format(hit.score) }}</span>
+                    </div>
+                    <p class="category">{{ hit.category }}</p>
+                    <h3>{{ hit.title }}</h3>
+                    <p>{{ hit.summary }}</p>
+                    <footer><span>{{ hit.source }}</span><span>#{{ hit.id }}</span></footer>
+                </article>
+                {% else %}
+                <div class="notice">No matching records were returned.</div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="site-footer">
+        <span>Synthetic corpus · 18 records</span>
+        <span>Python / Flask / Milvus Lite</span>
+    </footer>
 </body>
 </html>

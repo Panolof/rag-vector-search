@@ -1,207 +1,143 @@
-# RAG Vector Search with Milvus using News Category Dataset
+# RAG Vector Search
 
-This repository demonstrates how to build a Retrieval-Augmented Generation (RAG) pipeline using a Milvus vector database and a pre-trained language model. The project is based on the "News Category Dataset" and showcases how to preprocess the data, generate embeddings, and perform vector search.
+A small, inspectable RAG system that runs locally, stores vectors in Milvus Lite, and keeps every retrieved record visible beside the answer.
 
-## Project Structure
-```plaintext
-rag-vector-search/
-├── src/
-│   ├── preprocess.py        # Script to preprocess data and create embeddings
-│   ├── milvus_setup.py      # Script to set up Milvus and insert vectors
-│   ├── rag_pipeline.py      # Script to create the RAG pipeline
-│   ├── app.py               # Flask app for UI interaction
-├── data/                    # Directory to store embeddings and metadata
-│   ├── embeddings.npy       # File to store the generated embeddings
-│   ├── metadata.csv         # File to store metadata (category, headline, short_description)
-├── templates/
-│   ├── index.html           # HTML template for Flask app
-├── docs/                    # Documentation directory
-│   ├── innerworkings.md     # Detailed explanation of the repository's inner workings
-├── README.md                # Project overview and step-by-step guide
-├── .gitignore               # Files and directories to ignore in the repository
-└── requirements.txt         # Python dependencies
-```
+The default demo is deliberately self-contained. It uses 18 synthetic records, deterministic local embeddings, and an extractive answer path. It needs no Docker service, dataset download, model download, API key, or paid provider call.
 
-## Getting Started
+![Local-first RAG interface](docs/demo.png)
 
-### Prerequisites
-Ensure you have the following installed on your system:
-* Python 3.8 or higher
-* pip (Python package installer)
-* Virtual environment setup (optional but recommended)
+## What this proves
 
-### Installation
-1. Clone the Repository: 
+- One embedding contract indexes documents and questions.
+- Milvus stores the full evidence record, not only a label or vector.
+- A versioned bootstrap verifies existing data instead of dropping it.
+- The web app is import-safe and escapes retrieved text.
+- Generation is replaceable. The offline answer path is the default; OpenAI is an explicit optional adapter.
+- Dependencies are locked, hashed, and checked against two vulnerability sources before installation.
+
+## Quick start
+
+Requirements: Python 3.11, 3.12, or 3.13 and
+[uv](https://docs.astral.sh/uv/).
+
 ```bash
-git clone https://github.com/your-username/rag-vector-search.git
+git clone https://github.com/Panolof/rag-vector-search.git
 cd rag-vector-search
 
+# Fail closed on source, hash, yanked-release, PyPI advisory, or OSV advisory issues.
+uv run --no-project --python 3.11 python scripts/verify_lock.py
+
+# Install only the reviewed lock.
+uv sync --locked
+
+# Create or verify the local synthetic index.
+uv run --frozen rag-vector-search bootstrap
+
+# Run the interface on localhost.
+uv run --frozen rag-vector-search serve
 ```
 
-2. Create a Virtual Environment (optional but recommended):
+Open <http://127.0.0.1:5000>.
+
+Search from the terminal instead:
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On macOS/Linux
-# or
-.\venv\Scripts\activate   # On Windows=
+uv run --frozen rag-vector-search search \
+  "What is changing in software dependency security?"
 ```
 
-3. Install Dependencies:
+Milvus Lite permits one process at a time to own a local database file. Stop the web server before using the terminal command against the same `RAG_DB_URI`.
+
+## Request path
+
+```text
+synthetic JSONL
+      -> deterministic 384-d embeddings
+      -> Milvus Lite / cosine AUTOINDEX
+      -> score + shared-term relevance gate
+      -> nearest evidence records
+      -> extractive answer + visible sources
+```
+
+The local database is written to `data/news_demo.db` and ignored by Git. Bootstrap is idempotent. If the collection schema, records, or embedding contract differ, the command leaves existing data untouched and asks for a new `RAG_COLLECTION` name.
+
+Read [how the demo works](docs/innerworkings.md) for the schema and trust boundaries.
+
+## Optional provider generation
+
+Provider mode can incur cost and sends the question plus retrieved synthetic records to the configured provider. The repository never enables it automatically.
+
 ```bash
-pip install -r requirements.txt
+uv sync --locked --extra openai
+
+export RAG_GENERATOR=openai
+export OPENAI_MODEL=<model-name>
+export OPENAI_API_KEY=<api-key>
+
+uv run --frozen rag-vector-search search "How do local evaluation gates work?"
 ```
 
-## Setting Up Milvus
+The adapter is lazy-loaded, limits context and output, and instructs the model to treat retrieved records as untrusted data. Provider output remains probabilistic and requires its own evaluation. Provider mode is terminal-only. The web factory rejects it so a cross-origin browser form cannot trigger paid calls against localhost.
 
-To use this project, you need to have Milvus installed and running. The easiest way to set up Milvus is by using Docker. Follow these steps:
+## Remote Milvus
 
-### Prerequisites
+The same `MilvusClient` path can target a remote deployment:
 
-- **Docker**: Ensure you have Docker installed on your system. You can download and install Docker from [here](https://www.docker.com/products/docker-desktop).
-
-### Steps to Set Up Milvus
-
-1. **Download the Official Milvus Docker Compose File**:
-   In your terminal, run the following command to download the Milvus standalone Docker Compose file:
-
-   ```bash
-   wget https://github.com/milvus-io/milvus/releases/download/v2.4.6/milvus-standalone-docker-compose.yml -O docker-compose.yml
-   ```
-
-   This command will download the `docker-compose.yml` file directly from the Milvus GitHub repository for version 2.0.2.
-
-2. **Start Milvus**:
-   In the terminal, navigate to the directory where you downloaded the `docker-compose.yml` file and run:
-
-   ```bash
-   docker-compose up -d
-   ```
-
-   This command will start the Milvus service in detached mode.
-
-3. **Verify Milvus is Running**:
-   You can check if Milvus is running with:
-
-   ```bash
-   docker-compose ps
-   ```
-    After Milvus standalone starts, there will be three Docker containers running, including the Milvus standalone service and its two dependencies.
-
-4. **Stopping Milvus**:
-   When you are done, you can stop the Milvus service with:
-
-   ```bash
-   docker-compose down
-   ```
-   If you want to delete the data after stopping Milvus, run:
-   ```bash
-   sudo rm -rf volumes
-   ```
-For more detailed instructions, refer to the official Milvus documentation: [Milvus Standalone Installation](https://milvus.io/docs/v2.0.x/install_standalone-docker.md).
-
-
-### Connecting to Milvus
-
-The application will automatically connect to Milvus using the environment variables specified in your `.env` file. Ensure you have the correct values set for `MILVUS_HOST` and `MILVUS_PORT`.
-
-Example `.env` configuration:
-
-```env
-MILVUS_HOST=127.0.0.1
-MILVUS_PORT=19530
-OPENAI_API_KEY=your_openai_api_key
-```
-
-By following these steps, you will have a fully operational Milvus instance running in Docker, ready to be used with this project.
-
-
-### Setting Up Environment Variables
-To securely manage API keys and database connections, this project uses a .env file to store environment variables. Follow the steps below to set it up:
-
-1. Create a .env File
-* In the root directory of your project, create a new file named .env.
-* You can use the .env.example file as a reference. Run the following command to copy it:
 ```bash
-cp .env.example .env
+export RAG_DB_URI=https://your-milvus-endpoint.example
+export MILVUS_TOKEN=<token>
 ```
 
-2. Fill in the .env File
-Open the newly created .env file and replace the placeholder values with your actual credentials:
-* OPENAI_API_KEY: This is your OpenAI API key. You can obtain it from [OpenAI's API](https://beta.openai.com/signup/).
-```plaintext
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-* MILVUS_HOST: This is the host address for your Milvus vector database. If you are running Milvus locally, this will likely be 127.0.0.1.
-```plaintext
-MILVUS_HOST=127.0.0.1
-```
-* MILVUS_PORT: This is the port number for your Milvus vector database. The default port is 19530.
-```plaintext
-MILVUS_PORT=19530
-```
-3. Save the .env File
-After filling in the values, save the .env file. This file will now be used to configure the API key and database connections throughout the project.
-Note: Never commit your .env file to version control. It contains sensitive information that should remain private. This should be documented in the [.gitignore](.gitignore)
+Milvus Lite is the tested demo target. Authentication, transport security, tenancy, backup, and production serving remain the remote operator's responsibility.
 
+## Tests and security checks
 
-
-
-## Step-by-Step Workflow
-1. Preprocessing the Dataset:
-The src/preprocess.py script loads the "News Category Dataset", preprocesses the text data, and generates embeddings using a pre-trained language model. These embeddings are saved as a NumPy array for later use.
-* Dataset Download: The script downloads the dataset from the Hugging Face hub.
-* Text Embedding: Each headline and description is combined and transformed into a vector using a pre-trained model.
-* Saving Data: The embeddings are saved to data/embeddings.npy, and the corresponding metadata is saved to data/metadata.csv.
-
-To run the preprocessing script:
 ```bash
-python src/preprocess.py
+uv run --frozen pytest
+uv run --frozen pip-audit --local --progress-spinner off
+uv run --no-project --python 3.11 python scripts/verify_lock.py
 ```
 
-Expected Output:
-* The embeddings and metadata will be stored in the data/ directory.
-* Progress will be shown in the terminal, including the time taken for each step.
+The tests cover configuration, corpus validation, deterministic embeddings, query limits, evidence shaping, provider isolation, HTML escaping, response headers, import safety, Milvus Lite bootstrap, reopened-database search, and mismatch preservation.
 
-2. Setting Up Milvus:
-The src/milvus_setup.py script connects to a Milvus instance, creates a collection for the embeddings, and inserts the vectors into the database.
-* Milvus Connection: Ensure Milvus is running locally or on a remote server.
-* Vector Insertion: The embeddings are indexed and stored in Milvus for efficient vector search.
+See the dated [dependency review](docs/dependency-review.md) and [security policy](SECURITY.md). Vulnerability databases cover known reports, not unknown malicious behaviour, so dependency minimisation and provenance review still matter.
 
-To set up Milvus and insert the vectors:
-```bash
-python src/milvus_setup.py
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `RAG_DB_URI` | `data/news_demo.db` | Local database file or remote Milvus URI |
+| `RAG_COLLECTION` | `synthetic_news_v4` | Versioned collection name |
+| `RAG_DIMENSION` | `384` | Hashing-embedding dimension |
+| `RAG_TOP_K` | `4` | Retrieved evidence count, maximum 20 |
+| `RAG_MIN_SCORE` | `0.08` | Minimum cosine score before a record can support an answer |
+| `RAG_MIN_SHARED_TERMS` | `2` | Distinct normalised terms the question and record must share |
+| `RAG_GENERATOR` | `extractive` | `extractive` or `openai` |
+| `MILVUS_TOKEN` | unset | Optional remote Milvus credential |
+| `OPENAI_MODEL` | unset | Required only for OpenAI mode |
+| `OPENAI_API_KEY` | unset | Required only for OpenAI mode |
+
+## Limits
+
+- The checked-in corpus is synthetic and intentionally small.
+- Feature hashing is a reproducible lexical baseline, not a frontier semantic embedding model.
+- A result must meet the score threshold and share at least two distinct normalised terms with the question. This filters the tested no-overlap and one-term-bait queries. It is a lexical heuristic, not an entailment check.
+- Similarity scores are useful for ranking within this corpus, not as calibrated relevance probabilities.
+- The built-in Flask server is for local demonstration, not internet-facing production use.
+- The optional provider adapter is structurally tested with a fake client. No paid live request is part of the test suite, and provider mode is unavailable through the web interface.
+
+## Project layout
+
+```text
+src/rag_vector_search/   application, retrieval, storage, and generation
+templates/               accessible Flask interface
+static/                  responsive visual system
+tests/                   unit, web, security, and Milvus Lite integration tests
+scripts/verify_lock.py   pre-install PyPI and OSV gate
+docs/                    architecture and dependency evidence
+uv.lock                  exact universal dependency lock with SHA-256 hashes
 ```
 
-3. Building the RAG Pipeline:
-The src/rag_pipeline.py script ties everything together by creating a RAG pipeline that can perform queries against the vector database and generate responses using a language model.
-* Querying: Enter a query to search the vector database and get generated responses.
-* Language Model Integration: The script uses the language model to provide contextually relevant answers based on vector search results.
-
-To run the RAG pipeline:
-```bash
-python src/rag_pipeline.py
-```
-
-4. Interacting with the Flask App:
-
-The src/app.py script provides a simple web interface to interact with the RAG pipeline. The app allows users to enter queries and view generated responses.
-
-To start the Flask app: 
-```bash
-python src/app.py
-```
-
-Visit http://127.0.0.1:5000/ in your browser to use the app.
-
-## Documentation
-A detailed explanation of the inner workings of this repository is provided in the [docs/innerworkings.md](docs/innerworkings.md) file. This includes information on:
-* Data Processing: How the dataset is preprocessed and transformed into embeddings.
-* Vector Search: How Milvus is used to store and retrieve vectors efficiently.
-* RAG Pipeline: Integration of vector search with a language model to create a RAG pipeline.
-* UI Interaction: How the Flask app is structured to interact with the pipeline.
-
-## License
-This project is licensed under the MIT License.
-
-## Contributions
-Contributions are welcome! Please open an issue or submit a pull request if you have suggestions for improvements.
+Project-authored code is available under the [MIT licence](LICENSE). Reachable
+Git history also contains Milvus Docker Compose release material under the
+Apache License 2.0. See [Third-party notices](THIRD_PARTY_NOTICES.md).

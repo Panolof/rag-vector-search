@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling==1.28.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rag-vector-search"
+version = "0.2.0"
+description = "A local-first RAG retrieval demo backed by Milvus Lite."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { file = "LICENSE" }
+authors = [{ name = "Panayiotis Pouroullis" }]
+dependencies = [
+  "Flask==3.1.3",
+  "milvus-lite==3.1.0",
+  "pymilvus==3.0.1",
+]
+
+[project.optional-dependencies]
+openai = ["openai==2.46.0"]
+
+[dependency-groups]
+dev = [
+  "hatchling==1.28.0",
+  "pip-audit==2.10.1",
+  "pytest==9.1.1",
+]
+
+[project.scripts]
+rag-vector-search = "rag_vector_search.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rag_vector_search"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/.env.example",
+  "/.github/workflows/ci.yml",
+  "/.python-version",
+  "/docs",
+  "/LICENSE",
+  "/LICENSES",
+  "/pyproject.toml",
+  "/README.md",
+  "/requirements.txt",
+  "/scripts",
+  "/SECURITY.md",
+  "/src",
+  "/static",
+  "/templates",
+  "/tests",
+  "/THIRD_PARTY_NOTICES.md",
+  "/uv.lock",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"templates/index.html" = "rag_vector_search/templates/index.html"
+"static/app.css" = "rag_vector_search/static/app.css"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.uv]
+exclude-newer = "2026-08-12T00:00:00Z"

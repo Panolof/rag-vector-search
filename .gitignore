@@ -1,12 +1,19 @@
-# Ignore virtual environment directories
+.venv/
 venv/
 env/
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Ignore data directories (if you don't want to track data files)
+# Local Milvus databases and write-ahead data
 data/
+*.db
+*.db-lock
+*.db.lock
+*.wal
 
 # Ignore any logs
 *.log
@@ -20,9 +27,9 @@ build/
 # Ignore system files
 .DS_Store
 
-# .gitignore
 .env
+.env.*
+!.env.example
 
-# Docker volumes directory
 volumes/
 

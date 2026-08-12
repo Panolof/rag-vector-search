@@ -1,16 +1,8 @@
-# src/app.py
-from flask import Flask, request, render_template
-from rag_pipeline import rag
+"""Compatibility entry point for the original `python src/app.py` command."""
 
-app = Flask(__name__)
+from rag_vector_search.app import create_app
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        query = request.form["query"]
-        response = rag.query(query)
-        return render_template("index.html", query=query, response=response)
-    return render_template("index.html")
+app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=False)

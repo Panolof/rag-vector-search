@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.0"
+          enable-cache: false
+
+      - name: Install Python
+        run: uv python install
+
+      - name: Verify locked releases before installation
+        run: uv run --no-project --python ${{ matrix.python-version }} python scripts/verify_lock.py
+
+      - name: Install the locked environment
+        run: uv sync --locked --all-extras
+
+      - name: Run tests
+        run: uv run --frozen pytest -q
+
+      - name: Audit the installed environment
+        run: uv run --frozen pip-audit --local --progress-spinner off
+
+      - name: Smoke-test the local search path
+        run: uv run --frozen rag-vector-search search "What is changing in software dependency security?"
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.0"
+          enable-cache: false
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Verify locked releases before installation
+        run: uv run --no-project --python 3.11 python scripts/verify_lock.py
+
+      - name: Install only the reviewed dependencies
+        run: uv sync --locked --all-extras --no-install-project --python 3.11
+
+      - name: Build wheel and source distribution
+        run: uv build --no-build-isolation
+
+      - name: Install the wheel without resolving dependencies
+        run: uv pip install --no-deps --python .venv/bin/python dist/*.whl
+
+      - name: Smoke-test the installed wheel away from the source tree
+        working-directory: ${{ runner.temp }}
+        run: >-
+          $GITHUB_WORKSPACE/.venv/bin/python -I -c
+          "from rag_vector_search.app import create_app;
+          from rag_vector_search.corpus import load_corpus;
+          assert create_app().test_client().get('/').status_code == 200;
+          assert len(load_corpus()) == 18"
